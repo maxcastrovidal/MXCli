@@ -1,0 +1,183 @@
+﻿@using CoreApp
+@using Newtonsoft.Json.Linq;
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@model IEnumerable<CoreApp.Models.Usuario>
+
+@{ JObject ConsultaActiva = JObject.Parse(HttpContextAccessor.HttpContext.Session.GetString("Usuarios.ConsultaActiva")); }
+
+<div style="font-size:30px; margin-top:10px">
+    <i class="bi bi-files"></i>&nbsp;Usuarios
+</div>
+
+<form asp-controller="Usuarios" asp-action="Index">
+
+    <div class="row form-group">
+        <div class="col-2">
+            Nombre
+            <input type="text" name="Nombre" value="@ConsultaActiva["Nombre"]" class="form-control input-sm" autocomplete="off" />
+        </div>
+        <div class="col-1">
+            E Desde
+            <input type="number" name="EdadDesde" value="@ConsultaActiva["EdadDesde"]" class="form-control input-sm" autocomplete="off" />
+        </div>
+        <div class="col-1">
+            E Hasta
+            <input type="number" name="EdadHasta" value="@ConsultaActiva["EdadHasta"]" class="form-control input-sm" autocomplete="off" />
+        </div>
+        <div class="col-3">
+            Fecha Creacion
+            @Html.TextBox("FecCreacionDesdeHasta", ConsultaActiva["FecCreacionDesdeHasta"], new { @class = "form-control input-sm daterangepickered", autocomplete = "off" })
+        </div>
+
+        <div class="col-1" style="margin-top:22px">
+            <button type="submit" class="btn btn-info" data-toggle="tooltip" data-placement="top" title="Filtrar">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="col-1" style="margin-top:22px">
+            <a asp-action="Details" asp-route-id="0" class="btn btn-success" style="font-size:17px; text-decoration:none" data-toggle="tooltip" data-placement="top" title="Crear">
+                <i class="bi bi-plus"></i>
+            </a>
+        </div>
+    </div>
+</form>
+
+@{
+    if (Model == null || !Model.Any())
+    {
+        <h4>La consulta no devolvió registros</h4>
+        return;
+    }
+
+    if (Model.ElementAt(0).IdEstado==1)
+    {
+        <h4>La consulta no devolvió registros</h4>
+        return;
+    }
+}
+
+@{
+    const int RegPagina = 5;
+
+    int RegTotal = Model.Count();
+
+    int PagActual = (int)Utils.Nz(HttpContextAccessor.HttpContext.Session.GetInt32("Usuarios.PagActual"), 1);
+    int PagMax = (int)Math.Ceiling((decimal)RegTotal / (decimal)RegPagina);
+    int RegDesde = RegPagina * (PagActual - 1) + 1;
+    int RegHasta = RegDesde + RegPagina - 1;
+    if (RegHasta > RegTotal) { RegHasta = RegTotal; }
+    int RegAct = 1;
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                <a asp-action="Ordenar" asp-route-Atributo="Nombre" style="text-decoration:none" data-toggle="tooltip" data-placement="top" title="Ordenar">
+                    @Html.DisplayNameFor(model => model.Nombre)
+                </a>
+            </th>
+            <th>
+                <a asp-action="Ordenar" asp-route-Atributo="Edad" style="text-decoration:none" data-toggle="tooltip" data-placement="top" title="Ordenar">
+                    @Html.DisplayNameFor(model => model.Edad)
+                </a>
+            </th>
+            <th>
+                <a asp-action="Ordenar" asp-route-Atributo="Activo" style="text-decoration:none" data-toggle="tooltip" data-placement="top" title="Ordenar">
+                    @Html.DisplayNameFor(model => model.Activo)
+                </a>
+            </th>
+            <th>
+                <a asp-action="Ordenar" asp-route-Atributo="FecCreacion" style="text-decoration:none" data-toggle="tooltip" data-placement="top" title="Ordenar">
+                    @Html.DisplayNameFor(model => model.FecCreacion)
+                </a>
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            if (RegAct >= RegDesde && RegAct <= RegHasta)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Nombre)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Edad)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Activo)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.FecCreacion)
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.Id" style="text-decoration:none" data-toggle="tooltip" data-placement="top" title="Ver Detalle">
+                            <i class="bi bi-card-text" style="font-size:20px"></i>
+                        </a> |
+                        <a asp-action="Details" asp-route-id="-@item.Id" style="text-decoration:none" data-toggle="tooltip" data-placement="top" title="Eliminar">
+                            <i class="bi bi-trash" style="font-size:20px"></i>
+                        </a>
+                    </td>
+                </tr>
+            }
+
+            if (RegAct == RegHasta) { break; }
+            RegAct += 1;
+        }
+    </tbody>
+</table>
+
+<table style="width:100%">
+    <tr>
+        <td style="text-align:left">
+            <table>
+                <tr style="vertical-align:middle; text-align:center">
+                    @{
+                        if (PagActual > 1)
+                        {
+                            <td width="40px">
+                                <a href="@Url.Action("Paginar", new { Pagina = 1 })" data-toggle="tooltip" data-placement="top" title="Primera página">
+                                    <i class="bi bi-chevron-bar-left" style="font-size:30px"></i>
+                                </a>
+                            </td>
+                            <td width="40px">
+                                <a href="@Url.Action("Paginar", new { Pagina = PagActual - 1 })" data-toggle="tooltip" data-placement="top" title="Página anterior">
+                                    <i class="bi bi-chevron-left" style="font-size:30px"></i>
+                                </a>
+                            </td>
+                            <td width="40px"></td>
+                        }
+
+                        <td>
+                            <span>Página @PagActual de @PagMax</span>
+                        </td>
+
+                        if (RegHasta < RegTotal)
+                        {
+                            <td width="40px"></td>
+                            <td width="40px">
+                                <a href="@Url.Action("Paginar", new { Pagina = PagActual + 1 })" data-toggle="tooltip" data-placement="top" title="Página siguiente">
+                                    <i class="bi bi-chevron-right" style="font-size:30px"></i>
+                                </a>
+                            </td>
+                            <td width="40px">
+                                <a href="@Url.Action("Paginar", new { Pagina = PagMax })" data-toggle="tooltip" data-placement="top" title="Última página">
+                                    <i class="bi bi-chevron-bar-right" style="font-size:30px"></i>
+                                </a>
+                            </td>
+                        }
+                    }
+                </tr>
+            </table>
+        </td>
+        <td></td>
+        <td style="text-align:right">
+            @String.Format("{0:n0}", RegTotal) registros en consulta
+        </td>
+    </tr>
+</table>
